@@ -33,8 +33,8 @@ echo ""
 
 check_dns() {
     local domain=$1
-    local ip=$(dig +short $domain | tail -n1)
-    local server_ip=$(curl -s ifconfig.me)
+    local ip=$(dig +short A $domain | tail -n1)
+    local server_ip=$(curl -4 -s ifconfig.me)
 
     echo -n "  Checking $domain... "
 
@@ -64,10 +64,10 @@ if [ "$dns_ok" = false ]; then
     echo -e "${YELLOW}Please configure these DNS records:${NC}"
     echo ""
     echo "Type  Name        Content          TTL"
-    echo "A     myremote    $(curl -s ifconfig.me)      300"
-    echo "A     api         $(curl -s ifconfig.me)      300"
-    echo "A     auth        $(curl -s ifconfig.me)      300"
-    echo "A     monitoring  $(curl -s ifconfig.me)      300"
+    echo "A     myremote    $(curl -4 -s ifconfig.me)      300"
+    echo "A     api         $(curl -4 -s ifconfig.me)      300"
+    echo "A     auth        $(curl -4 -s ifconfig.me)      300"
+    echo "A     monitoring  $(curl -4 -s ifconfig.me)      300"
     echo ""
     echo "Wait 5-10 minutes for DNS propagation, then run this script again."
     exit 1
