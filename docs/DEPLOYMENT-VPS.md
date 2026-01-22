@@ -174,7 +174,7 @@ sudo ./deploy-vps.sh
 1. ✅ Mettre à jour le système
 2. ✅ Installer Docker, Docker Compose, Nginx, Certbot
 3. ✅ Configurer le firewall (préserve les règles existantes)
-4. ✅ Créer `/opt/apps/myremote`
+4. ✅ Créer `/opt/apps/MyRemote`
 5. ✅ Cloner le repository
 6. ✅ Vous demander de configurer `.env.prod` (éditeur nano)
 7. ✅ Obtenir les certificats SSL (Let's Encrypt)
@@ -196,7 +196,7 @@ curl -fsSL https://get.docker.com -o get-docker.sh
 sudo sh get-docker.sh
 
 # Docker Compose
-sudo apt-get install -y docker-compose-plugin
+sudo apt-get install -y docker compose-plugin
 
 # Vérifier
 docker --version
@@ -212,8 +212,8 @@ sudo apt-get install -y nginx certbot python3-certbot-nginx
 #### 3. Créer le Répertoire et Cloner le Repository
 
 ```bash
-sudo mkdir -p /opt/apps/myremote
-cd /opt/apps/myremote
+sudo mkdir -p /opt/apps/MyRemote
+cd /opt/apps/MyRemote
 
 sudo git clone https://github.com/wilf974/MyRemote.git .
 sudo git checkout claude/remote-support-app-design-arFMJ
@@ -312,16 +312,16 @@ sudo systemctl enable nginx
 #### 7. Démarrer Docker Compose
 
 ```bash
-cd /opt/apps/myremote
+cd /opt/apps/MyRemote
 
 # Pull images
-sudo docker compose -f docker-compose.prod.yml pull
+sudo docker compose -f docker compose.prod.yml pull
 
 # Démarrer les services
-sudo docker compose -f docker-compose.prod.yml up -d
+sudo docker compose -f docker compose.prod.yml up -d
 
 # Vérifier que tout est UP
-sudo docker compose -f docker-compose.prod.yml ps
+sudo docker compose -f docker compose.prod.yml ps
 ```
 
 #### 8. Lancer les Migrations Database
@@ -331,10 +331,10 @@ sudo docker compose -f docker-compose.prod.yml ps
 sleep 30
 
 # Lancer migrations
-sudo docker compose -f docker-compose.prod.yml exec api pnpm db:migrate
+sudo docker compose -f docker compose.prod.yml exec api pnpm db:migrate
 
 # Vérifier les tables
-sudo docker compose -f docker-compose.prod.yml exec postgres psql -U myremote -d myremote -c "\dt"
+sudo docker compose -f docker compose.prod.yml exec postgres psql -U myremote -d myremote -c "\dt"
 ```
 
 ---
@@ -375,7 +375,7 @@ Login : `admin` / `[KEYCLOAK_ADMIN_PASSWORD from .env.prod]`
     ```
 13. Redémarrer l'API :
     ```bash
-    sudo docker compose -f docker-compose.prod.yml restart api
+    sudo docker compose -f docker compose.prod.yml restart api
     ```
 
 #### Créer le Client Web
@@ -419,10 +419,10 @@ Au premier login, l'utilisateur devra scanner le QR code avec Google Authenticat
 ### 2. Seed Données de Test (Optionnel)
 
 ```bash
-cd /opt/apps/myremote
+cd /opt/apps/MyRemote
 
 # Créer données de test (users, roles, devices exemple)
-sudo docker compose -f docker-compose.prod.yml exec api pnpm db:seed
+sudo docker compose -f docker compose.prod.yml exec api pnpm db:seed
 ```
 
 ---
@@ -432,8 +432,8 @@ sudo docker compose -f docker-compose.prod.yml exec api pnpm db:seed
 ### 1. Check Services Docker
 
 ```bash
-cd /opt/apps/myremote
-sudo docker compose -f docker-compose.prod.yml ps
+cd /opt/apps/MyRemote
+sudo docker compose -f docker compose.prod.yml ps
 
 # Tous doivent être "Up (healthy)"
 # NAME                      STATUS
@@ -510,10 +510,10 @@ echo | openssl s_client -connect myremote.woutils.com:443 -servername myremote.w
 #### Manuel
 
 ```bash
-cd /opt/apps/myremote
+cd /opt/apps/MyRemote
 
 # Backup complet
-sudo docker compose -f docker-compose.prod.yml exec postgres pg_dump -U myremote myremote > backup-$(date +%Y%m%d-%H%M%S).sql
+sudo docker compose -f docker compose.prod.yml exec postgres pg_dump -U myremote myremote > backup-$(date +%Y%m%d-%H%M%S).sql
 
 # Compresser
 gzip backup-*.sql
@@ -527,7 +527,7 @@ rsync -avz backup-*.sql.gz user@backup-server:/backups/myremote/
 
 ```bash
 # Créer script de backup
-sudo nano /opt/apps/myremote/scripts/backup-db.sh
+sudo nano /opt/apps/MyRemote/scripts/backup-db.sh
 ```
 
 Contenu :
@@ -537,10 +537,10 @@ BACKUP_DIR="/opt/backups/myremote"
 RETENTION_DAYS=30
 
 mkdir -p $BACKUP_DIR
-cd /opt/apps/myremote
+cd /opt/apps/MyRemote
 
 # Backup PostgreSQL
-docker compose -f docker-compose.prod.yml exec -T postgres pg_dump -U myremote myremote | gzip > $BACKUP_DIR/backup-$(date +%Y%m%d-%H%M%S).sql.gz
+docker compose -f docker compose.prod.yml exec -T postgres pg_dump -U myremote myremote | gzip > $BACKUP_DIR/backup-$(date +%Y%m%d-%H%M%S).sql.gz
 
 # Nettoyer backups > 30 jours
 find $BACKUP_DIR -name "backup-*.sql.gz" -mtime +$RETENTION_DAYS -delete
@@ -551,28 +551,28 @@ find $BACKUP_DIR -name "backup-*.sql.gz" -mtime +$RETENTION_DAYS -delete
 
 ```bash
 # Rendre exécutable
-sudo chmod +x /opt/apps/myremote/scripts/backup-db.sh
+sudo chmod +x /opt/apps/MyRemote/scripts/backup-db.sh
 
 # Ajouter au cron (tous les jours à 2h du matin)
 sudo crontab -e
 
 # Ajouter :
-0 2 * * * /opt/apps/myremote/scripts/backup-db.sh >> /var/log/myremote-backup.log 2>&1
+0 2 * * * /opt/apps/MyRemote/scripts/backup-db.sh >> /var/log/myremote-backup.log 2>&1
 ```
 
 ### Restauration PostgreSQL
 
 ```bash
-cd /opt/apps/myremote
+cd /opt/apps/MyRemote
 
 # Arrêter l'API
-sudo docker compose -f docker-compose.prod.yml stop api
+sudo docker compose -f docker compose.prod.yml stop api
 
 # Restaurer backup
-gunzip < backup-YYYYMMDD-HHMMSS.sql.gz | sudo docker compose -f docker-compose.prod.yml exec -T postgres psql -U myremote myremote
+gunzip < backup-YYYYMMDD-HHMMSS.sql.gz | sudo docker compose -f docker compose.prod.yml exec -T postgres psql -U myremote myremote
 
 # Redémarrer l'API
-sudo docker compose -f docker-compose.prod.yml start api
+sudo docker compose -f docker compose.prod.yml start api
 ```
 
 ### Backup Volumes Docker
@@ -595,52 +595,52 @@ sudo docker run --rm -v myremote_redis_data:/data -v /opt/backups:/backup ubuntu
 ### Process de Mise à Jour
 
 ```bash
-cd /opt/apps/myremote
+cd /opt/apps/MyRemote
 
 # 1. Backup avant mise à jour (IMPORTANT)
-sudo docker compose -f docker-compose.prod.yml exec postgres pg_dump -U myremote myremote | gzip > backup-pre-update-$(date +%Y%m%d).sql.gz
+sudo docker compose -f docker compose.prod.yml exec postgres pg_dump -U myremote myremote | gzip > backup-pre-update-$(date +%Y%m%d).sql.gz
 
 # 2. Pull dernières modifications
 sudo git fetch origin
 sudo git pull origin claude/remote-support-app-design-arFMJ
 
 # 3. Rebuild images
-sudo docker compose -f docker-compose.prod.yml build
+sudo docker compose -f docker compose.prod.yml build
 
 # 4. Arrêter les services
-sudo docker compose -f docker-compose.prod.yml down
+sudo docker compose -f docker compose.prod.yml down
 
 # 5. Pull nouvelles images (si utilisées depuis registry)
-sudo docker compose -f docker-compose.prod.yml pull
+sudo docker compose -f docker compose.prod.yml pull
 
 # 6. Redémarrer avec nouvelles images
-sudo docker compose -f docker-compose.prod.yml up -d
+sudo docker compose -f docker compose.prod.yml up -d
 
 # 7. Lancer migrations database (si nécessaire)
-sudo docker compose -f docker-compose.prod.yml exec api pnpm db:migrate
+sudo docker compose -f docker compose.prod.yml exec api pnpm db:migrate
 
 # 8. Vérifier logs
-sudo docker compose -f docker-compose.prod.yml logs -f api
+sudo docker compose -f docker compose.prod.yml logs -f api
 ```
 
 ### Rollback en Cas de Problème
 
 ```bash
 # 1. Arrêter les services
-sudo docker compose -f docker-compose.prod.yml down
+sudo docker compose -f docker compose.prod.yml down
 
 # 2. Revenir au commit précédent
 sudo git log --oneline -10  # Voir historique
 sudo git checkout [commit-hash-précédent]
 
 # 3. Rebuild
-sudo docker compose -f docker-compose.prod.yml build
+sudo docker compose -f docker compose.prod.yml build
 
 # 4. Redémarrer
-sudo docker compose -f docker-compose.prod.yml up -d
+sudo docker compose -f docker compose.prod.yml up -d
 
 # 5. Si problème database, restaurer backup
-gunzip < backup-pre-update-YYYYMMDD.sql.gz | sudo docker compose -f docker-compose.prod.yml exec -T postgres psql -U myremote myremote
+gunzip < backup-pre-update-YYYYMMDD.sql.gz | sudo docker compose -f docker compose.prod.yml exec -T postgres psql -U myremote myremote
 ```
 
 ---
@@ -703,14 +703,14 @@ Exemples d'alertes à créer dans Prometheus :
 
 ```bash
 # Check logs
-sudo docker compose -f docker-compose.prod.yml logs
+sudo docker compose -f docker compose.prod.yml logs
 
 # Vérifier ressources système
 free -h
 df -h
 
 # Restart un service spécifique
-sudo docker compose -f docker-compose.prod.yml restart api
+sudo docker compose -f docker compose.prod.yml restart api
 ```
 
 ### Problème : Certificats SSL expirés
@@ -732,7 +732,7 @@ sudo certbot renew --force-renewal
 
 ```bash
 # Vérifier que le service backend est UP
-sudo docker compose -f docker-compose.prod.yml ps
+sudo docker compose -f docker compose.prod.yml ps
 
 # Vérifier logs nginx
 sudo tail -f /var/log/nginx/error.log
@@ -746,31 +746,31 @@ sudo netstat -tlnp | grep 3000  # Web frontend
 
 ```bash
 # Vérifier PostgreSQL
-sudo docker compose -f docker-compose.prod.yml logs postgres
+sudo docker compose -f docker compose.prod.yml logs postgres
 
 # Tester connexion
-sudo docker compose -f docker-compose.prod.yml exec postgres psql -U myremote -d myremote -c "SELECT version();"
+sudo docker compose -f docker compose.prod.yml exec postgres psql -U myremote -d myremote -c "SELECT version();"
 
 # Vérifier password dans .env.prod
-sudo cat /opt/apps/myremote/.env.prod | grep POSTGRES_PASSWORD
+sudo cat /opt/apps/MyRemote/.env.prod | grep POSTGRES_PASSWORD
 ```
 
 ### Problème : Keycloak ne démarre pas
 
 ```bash
 # Vérifier logs
-sudo docker compose -f docker-compose.prod.yml logs keycloak
+sudo docker compose -f docker compose.prod.yml logs keycloak
 
 # Keycloak prend 30-60s à démarrer, vérifier après 1 minute
 sleep 60
-sudo docker compose -f docker-compose.prod.yml ps keycloak
+sudo docker compose -f docker compose.prod.yml ps keycloak
 ```
 
 ### Problème : TURN relay ne fonctionne pas (pas de WebRTC)
 
 ```bash
 # Vérifier coturn
-sudo docker compose -f docker-compose.prod.yml logs turn
+sudo docker compose -f docker compose.prod.yml logs turn
 
 # Tester TURN depuis client
 # Utiliser : https://webrtc.github.io/samples/src/content/peerconnection/trickle-ice/
@@ -870,28 +870,28 @@ sudo fail2ban-client status
 
 ```bash
 # Voir tous les conteneurs
-sudo docker compose -f docker-compose.prod.yml ps
+sudo docker compose -f docker compose.prod.yml ps
 
 # Logs en temps réel
-sudo docker compose -f docker-compose.prod.yml logs -f
+sudo docker compose -f docker compose.prod.yml logs -f
 
 # Logs d'un service spécifique
-sudo docker compose -f docker-compose.prod.yml logs -f api
+sudo docker compose -f docker compose.prod.yml logs -f api
 
 # Restart tous les services
-sudo docker compose -f docker-compose.prod.yml restart
+sudo docker compose -f docker compose.prod.yml restart
 
 # Restart un service
-sudo docker compose -f docker-compose.prod.yml restart api
+sudo docker compose -f docker compose.prod.yml restart api
 
 # Stop tous les services
-sudo docker compose -f docker-compose.prod.yml down
+sudo docker compose -f docker compose.prod.yml down
 
 # Stop + supprimer volumes (⚠️ DANGER - perte de données)
-sudo docker compose -f docker-compose.prod.yml down -v
+sudo docker compose -f docker compose.prod.yml down -v
 
 # Rebuild + redémarrer
-sudo docker compose -f docker-compose.prod.yml up -d --build
+sudo docker compose -f docker compose.prod.yml up -d --build
 
 # Nettoyer images inutilisées
 sudo docker system prune -a
@@ -901,7 +901,7 @@ sudo docker system prune -a
 
 ```bash
 # Accéder au shell PostgreSQL
-sudo docker compose -f docker-compose.prod.yml exec postgres psql -U myremote -d myremote
+sudo docker compose -f docker compose.prod.yml exec postgres psql -U myremote -d myremote
 
 # Lister tables
 \dt
@@ -916,10 +916,10 @@ SELECT * FROM users LIMIT 10;
 \q
 
 # Backup
-sudo docker compose -f docker-compose.prod.yml exec postgres pg_dump -U myremote myremote > backup.sql
+sudo docker compose -f docker compose.prod.yml exec postgres pg_dump -U myremote myremote > backup.sql
 
 # Restaurer
-cat backup.sql | sudo docker compose -f docker-compose.prod.yml exec -T postgres psql -U myremote myremote
+cat backup.sql | sudo docker compose -f docker compose.prod.yml exec -T postgres psql -U myremote myremote
 ```
 
 ### Nginx
@@ -964,7 +964,7 @@ sudo certbot renew --dry-run
 
 ## Support
 
-- **Documentation** : `/opt/apps/myremote/docs/`
+- **Documentation** : `/opt/apps/MyRemote/docs/`
 - **Issues** : https://github.com/wilf974/MyRemote/issues
 - **Logs** : `/var/log/nginx/` + `docker compose logs`
 

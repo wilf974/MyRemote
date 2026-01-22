@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 DOMAIN="myremote.woutils.com"
-INSTALL_DIR="/opt/apps/myremote"
+INSTALL_DIR="/opt/apps/MyRemote"
 NGINX_CONFIG="/etc/nginx/sites-available/myremote.conf"
 CERTBOT_EMAIL="admin@woutils.com"  # Change this!
 
@@ -35,14 +35,24 @@ apt-get upgrade -y
 
 # Step 2: Install dependencies
 echo -e "${YELLOW}[2/10] Installing dependencies...${NC}"
+
+# Check if Docker is already installed
+if ! command -v docker &> /dev/null; then
+    echo "Installing Docker..."
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sh get-docker.sh
+    rm get-docker.sh
+else
+    echo "Docker is already installed"
+fi
+
+# Install other dependencies
 apt-get install -y \
     curl \
     git \
     nginx \
     certbot \
     python3-certbot-nginx \
-    docker.io \
-    docker-compose \
     ufw
 
 # Enable and start Docker
@@ -157,10 +167,10 @@ echo -e "${GREEN}Nginx configured and reloaded${NC}"
 echo -e "${YELLOW}[9/10] Starting Docker containers...${NC}"
 
 # Pull images
-docker-compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml pull
 
 # Start services
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d
 
 echo -e "${GREEN}Docker containers started${NC}"
 
@@ -169,12 +179,12 @@ echo -e "${YELLOW}Waiting for services to be ready (30s)...${NC}"
 sleep 30
 
 # Check container status
-docker-compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml ps
 
 # Step 10: Run database migrations
 echo -e "${YELLOW}[10/10] Running database migrations...${NC}"
 # TODO: Add migration command when backend is ready
-# docker-compose -f docker-compose.prod.yml exec api pnpm db:migrate
+# docker compose -f docker-compose.prod.yml exec api pnpm db:migrate
 
 echo ""
 echo -e "${GREEN}================================${NC}"
@@ -195,9 +205,9 @@ echo "  3. Setup automatic backups (see docs/DEPLOYMENT-VPS.md)"
 echo "  4. Configure monitoring alerts"
 echo ""
 echo -e "${YELLOW}Useful commands:${NC}"
-echo "  • View logs:           docker-compose -f docker-compose.prod.yml logs -f"
-echo "  • Restart services:    docker-compose -f docker-compose.prod.yml restart"
-echo "  • Stop services:       docker-compose -f docker-compose.prod.yml down"
-echo "  • Update app:          cd $INSTALL_DIR && git pull && docker-compose -f docker-compose.prod.yml up -d --build"
+echo "  • View logs:           docker compose -f docker-compose.prod.yml logs -f"
+echo "  • Restart services:    docker compose -f docker-compose.prod.yml restart"
+echo "  • Stop services:       docker compose -f docker-compose.prod.yml down"
+echo "  • Update app:          cd $INSTALL_DIR && git pull && docker compose -f docker-compose.prod.yml up -d --build"
 echo ""
 echo -e "${GREEN}✨ Enjoy MyRemote!${NC}"
