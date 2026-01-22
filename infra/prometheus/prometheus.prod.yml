@@ -1,0 +1,111 @@
+# MyRemote Prometheus - Production Configuration
+# Metrics collection for monitoring
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'myremote-prod'
+    environment: 'production'
+
+# Alertmanager configuration (optional - configure if using alerts)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - 'alertmanager:9093'
+
+# Rule files (for alerting rules)
+rule_files:
+  - '/etc/prometheus/rules/*.yml'
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # MyRemote API Backend
+  - job_name: 'myremote-api'
+    metrics_path: '/api/v1/metrics'
+    static_configs:
+      - targets: ['api:4000']
+        labels:
+          service: 'api'
+          component: 'backend'
+    # Basic auth if metrics endpoint is protected
+    # basic_auth:
+    #   username: 'prometheus'
+    #   password_file: '/etc/prometheus/secrets/api_metrics_password'
+
+  # PostgreSQL Exporter
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: 'postgres'
+          component: 'database'
+
+  # Redis Exporter
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          service: 'redis'
+          component: 'cache'
+
+  # Coturn TURN Server
+  - job_name: 'coturn'
+    static_configs:
+      - targets: ['turn:9641']
+        labels:
+          service: 'coturn'
+          component: 'turn-relay'
+
+  # Node Exporter (system metrics)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'node-exporter'
+          component: 'system'
+
+  # Keycloak (if metrics enabled via jboss-cli)
+  - job_name: 'keycloak'
+    metrics_path: '/auth/realms/master/metrics'
+    static_configs:
+      - targets: ['keycloak:8080']
+        labels:
+          service: 'keycloak'
+          component: 'auth'
+
+  # Nginx Exporter (if installed)
+  # - job_name: 'nginx'
+  #   static_configs:
+  #     - targets: ['nginx-exporter:9113']
+  #       labels:
+  #         service: 'nginx'
+  #         component: 'reverse-proxy'
+
+  # Docker Container Metrics (via cAdvisor)
+  # - job_name: 'cadvisor'
+  #   static_configs:
+  #     - targets: ['cadvisor:8080']
+  #       labels:
+  #         service: 'cadvisor'
+  #         component: 'containers'
+
+# Remote write (optional - for long-term storage)
+# remote_write:
+#   - url: 'https://prometheus-remote-write.example.com/api/v1/write'
+#     basic_auth:
+#       username: 'myremote'
+#       password_file: '/etc/prometheus/secrets/remote_write_password'
+
+# Storage retention
+storage:
+  tsdb:
+    retention.time: 30d
+    retention.size: 10GB
