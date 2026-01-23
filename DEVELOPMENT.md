@@ -1,5 +1,83 @@
 # MyRemote - Guide de Développement
 
+## 🎉 Sprint 3 Complété - Gestion de Flotte (Users & Agents)
+
+Le Sprint 3 (Gestion de Flotte) a été complété avec succès ! Le système de gestion des utilisateurs et agents est maintenant opérationnel avec mises à jour en temps réel via WebSocket.
+
+### ✅ Ce qui a été implémenté (Sprint 3)
+
+#### API - Module Users
+- ✅ CRUD complet pour les utilisateurs
+- ✅ Filtres (rôle, statut, recherche, pagination)
+- ✅ Statistiques utilisateurs (par statut et rôle)
+- ✅ Soft delete (set status to INACTIVE)
+- ✅ Prévention auto-suppression
+- ✅ Audit logging pour toutes les opérations
+- ✅ Endpoints REST:
+  - GET /users - Liste des utilisateurs
+  - GET /users/stats - Statistiques
+  - GET /users/:id - Détails utilisateur
+  - POST /users - Créer utilisateur (ADMIN)
+  - PUT /users/:id - Modifier utilisateur (ADMIN)
+  - DELETE /users/:id - Supprimer utilisateur (ADMIN)
+
+#### API - Module Agents
+- ✅ CRUD complet pour les agents
+- ✅ Enrollment sécurisé des agents
+- ✅ Système de heartbeat pour monitoring
+- ✅ Filtres (statut, OS, recherche, tags, pagination)
+- ✅ Statistiques agents (par statut et OS)
+- ✅ Auto-marquage offline après 5 min d'inactivité
+- ✅ Émission d'événements WebSocket en temps réel
+- ✅ Audit logging pour toutes les opérations
+- ✅ Endpoints REST:
+  - GET /agents - Liste des agents
+  - GET /agents/stats - Statistiques
+  - GET /agents/:id - Détails agent
+  - POST /agents/enroll - Enrollment agent (PUBLIC)
+  - POST /agents/heartbeat - Heartbeat agent (PUBLIC)
+  - PUT /agents/:id - Modifier agent
+  - DELETE /agents/:id - Supprimer agent (ADMIN)
+
+#### WebSocket - Mises à jour en temps réel
+- ✅ EventsGateway avec Socket.IO
+- ✅ Événements émis:
+  * agent:status - Changement de statut
+  * agent:heartbeat - Données de heartbeat
+  * agent:enrolled - Nouvel agent
+  * agent:deleted - Agent supprimé
+  * session:started - Session démarrée
+  * session:ended - Session terminée
+- ✅ Subscribe/unsubscribe mechanisms
+- ✅ CORS configuré pour le frontend
+
+#### Frontend - Gestion Users
+- ✅ Page /dashboard/users
+- ✅ Liste avec recherche
+- ✅ Affichage des infos (email, rôle, statut, 2FA)
+- ✅ Suppression (ADMIN uniquement)
+- ✅ Navigation vers création utilisateur
+
+#### Frontend - Gestion Agents
+- ✅ Page /dashboard/agents
+- ✅ Liste avec recherche et filtres (statut, OS)
+- ✅ Mises à jour en temps réel via WebSocket
+- ✅ Indicateur de connexion live
+- ✅ Affichage du statut (ONLINE/OFFLINE)
+- ✅ Métriques système (CPU, mémoire, disque)
+- ✅ Dernière connexion
+- ✅ Suppression (ADMIN uniquement)
+- ✅ Navigation vers détails agent
+
+#### Frontend - Hooks & Utils
+- ✅ useSocket() hook pour WebSocket
+- ✅ usersApi avec toutes les opérations CRUD
+- ✅ agentsApi avec toutes les opérations CRUD
+- ✅ Auto-connect/disconnect WebSocket
+- ✅ Tracking du statut de connexion
+
+---
+
 ## 🎉 Sprint 2 Complété - Authentification avec Keycloak
 
 Le Sprint 2 (Authentification) a été complété avec succès ! Le système d'authentification complet est maintenant opérationnel avec Keycloak, 2FA et RBAC.
@@ -238,42 +316,42 @@ http://localhost:3000/login
 
 ---
 
-## 📋 Prochaines Étapes - Sprint 3
+## 📋 Prochaines Étapes - Sprint 4
 
-### Sprint 3 : Gestion de Flotte (Semaines 5-6)
+### Sprint 4 : Agent Rust (Semaines 7-9)
 
 #### À Implémenter
 
-1. **API - Module Users**
-   - [ ] Endpoints CRUD pour users
-   - [ ] Synchronisation avec Keycloak
-   - [ ] Gestion des rôles
-   - [ ] Liste et recherche
+1. **Agent Rust - Base**
+   - [ ] Configuration Cargo project
+   - [ ] Structure multi-plateforme (Windows, macOS, Linux)
+   - [ ] System information collection
+   - [ ] Configuration file parsing
 
-2. **API - Module Agents**
-   - [ ] Endpoints CRUD pour agents
-   - [ ] Enrollment sécurisé
-   - [ ] Heartbeat et status
-   - [ ] Tags et métadonnées
+2. **Agent - Enrollment**
+   - [ ] Générer clés RSA pour l'agent
+   - [ ] Appel API /agents/enroll avec token
+   - [ ] Stockage sécurisé du certificat
+   - [ ] Validation de la réponse serveur
 
-3. **Frontend - Pages Users**
-   - [ ] Liste des utilisateurs
-   - [ ] Créer/éditer utilisateur
-   - [ ] Assigner rôles
-   - [ ] Désactiver/supprimer
+3. **Agent - Heartbeat**
+   - [ ] Timer périodique (30s)
+   - [ ] Collecte métriques système (CPU, RAM, disque)
+   - [ ] Appel API /agents/heartbeat
+   - [ ] Gestion des erreurs réseau
 
-4. **Frontend - Pages Agents**
-   - [ ] Liste des agents (avec statut en temps réel)
-   - [ ] Détails d'un agent
-   - [ ] Actions (redémarrer, mettre à jour)
-   - [ ] Tags et filtres
+4. **Agent - Communication**
+   - [ ] Client HTTP avec retry logic
+   - [ ] WebSocket client pour commandes
+   - [ ] TLS/SSL pour sécurité
+   - [ ] Authentification par certificat
 
-5. **WebSocket**
-   - [ ] Configuration Socket.io
-   - [ ] Events pour statut agents
-   - [ ] Updates en temps réel
-
-### Sprint 4 : Agent Rust (Semaines 7-9)
+5. **Agent - Installation**
+   - [ ] Service Windows (windows-service crate)
+   - [ ] Daemon macOS (launchd)
+   - [ ] Systemd service Linux
+   - [ ] Scripts d'installation
+   - [ ] Auto-update mechanism
 
 - Agent multi-plateforme (Windows, macOS, Linux)
 - Enrollment sécurisé
@@ -310,7 +388,9 @@ sudo bash scripts/deploy-infrastructure-only.sh
 - ✅ **Infrastructure** : Scripts de déploiement prêts
 - ✅ **Fondations code** : Sprint 1 complété
 - ✅ **Authentification** : Sprint 2 complété (Keycloak, JWT, 2FA, RBAC)
-- ⚠️ **Fonctionnalités** : À implémenter (Sprints 3-6)
+- ✅ **Gestion de flotte** : Sprint 3 complété (Users, Agents, WebSocket)
+- ⚠️ **Agent Rust** : À implémenter (Sprint 4)
+- ⚠️ **Sessions distantes** : À implémenter (Sprints 5-6)
 
 ---
 
@@ -340,5 +420,5 @@ Voir `CONTRIBUTING.md` pour les guidelines de contribution.
 ---
 
 **Dernière mise à jour** : 2026-01-23
-**Sprints complétés** : Sprint 1 (Fondations) ✅ | Sprint 2 (Authentification) ✅
-**Prochain sprint** : Sprint 3 (Gestion de Flotte - Users & Agents)
+**Sprints complétés** : Sprint 1 (Fondations) ✅ | Sprint 2 (Authentification) ✅ | Sprint 3 (Gestion de Flotte) ✅
+**Prochain sprint** : Sprint 4 (Agent Rust Multi-plateforme)
