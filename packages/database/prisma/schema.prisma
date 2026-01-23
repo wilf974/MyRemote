@@ -1,0 +1,202 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// Users & Authentication
+// ==========================================
+
+enum UserRole {
+  ADMIN
+  TECHNICIAN
+  VIEWER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model User {
+  id                String      @id @default(uuid())
+  email             String      @unique
+  firstName         String      @db.VarChar(100)
+  lastName          String      @db.VarChar(100)
+  role              UserRole
+  status            UserStatus  @default(ACTIVE)
+  keycloakId        String      @unique
+  twoFactorEnabled  Boolean     @default(false)
+  lastLoginAt       DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  // Relations
+  enrolledAgents    Agent[]     @relation("EnrolledBy")
+  initiatedSessions Session[]   @relation("InitiatedBy")
+  grantedConsents   Session[]   @relation("ConsentGrantedBy")
+  auditLogs         AuditLog[]
+
+  @@map("users")
+}
+
+// ==========================================
+// Agents (Remote Machines)
+// ==========================================
+
+enum AgentStatus {
+  ONLINE
+  OFFLINE
+  UNKNOWN
+}
+
+enum AgentOS {
+  WINDOWS
+  MACOS
+  LINUX
+}
+
+model Agent {
+  id          String      @id @default(uuid())
+  hostname    String      @db.VarChar(255)
+  os          AgentOS
+  osVersion   String      @db.VarChar(50)
+  architecture String     @db.VarChar(20)
+  ipAddress   String      @db.VarChar(45)
+  macAddress  String      @db.VarChar(17)
+  version     String      @db.VarChar(20)
+  status      AgentStatus @default(OFFLINE)
+  publicKey   String      @db.Text
+  lastSeenAt  DateTime    @default(now())
+  enrolledAt  DateTime    @default(now())
+  enrolledBy  String
+  tags        String[]
+  metadata    Json        @default("{}")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  enrolledByUser  User      @relation("EnrolledBy", fields: [enrolledBy], references: [id])
+  sessions        Session[]
+  auditLogs       AuditLog[]
+
+  @@index([status])
+  @@index([lastSeenAt])
+  @@map("agents")
+}
+
+// ==========================================
+// Remote Sessions
+// ==========================================
+
+enum SessionType {
+  DESKTOP
+  TERMINAL
+  FILE_TRANSFER
+}
+
+enum SessionStatus {
+  PENDING
+  ACTIVE
+  ENDED
+  FAILED
+}
+
+enum ConsentStatus {
+  PENDING
+  GRANTED
+  DENIED
+  NOT_REQUIRED
+}
+
+model Session {
+  id                String        @id @default(uuid())
+  type              SessionType
+  status            SessionStatus @default(PENDING)
+  agentId           String
+  initiatedBy       String
+  consentStatus     ConsentStatus @default(PENDING)
+  consentGrantedBy  String?
+  consentGrantedAt  DateTime?
+  startedAt         DateTime      @default(now())
+  endedAt           DateTime?
+  duration          Int?          // in seconds
+  metadata          Json          @default("{}")
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Relations
+  agent               Agent       @relation(fields: [agentId], references: [id])
+  initiatedByUser     User        @relation("InitiatedBy", fields: [initiatedBy], references: [id])
+  consentGrantedByUser User?      @relation("ConsentGrantedBy", fields: [consentGrantedBy], references: [id])
+  auditLogs           AuditLog[]
+
+  @@index([status])
+  @@index([agentId])
+  @@index([initiatedBy])
+  @@index([startedAt])
+  @@map("sessions")
+}
+
+// ==========================================
+// Audit Logs (Immutable)
+// ==========================================
+
+enum AuditAction {
+  USER_LOGIN
+  USER_LOGOUT
+  USER_CREATE
+  USER_UPDATE
+  USER_DELETE
+  AGENT_ENROLL
+  AGENT_UPDATE
+  AGENT_DELETE
+  SESSION_CREATE
+  SESSION_START
+  SESSION_END
+  SESSION_CONSENT_GRANT
+  SESSION_CONSENT_DENY
+  TWO_FACTOR_ENABLE
+  TWO_FACTOR_DISABLE
+  PASSWORD_CHANGE
+  PERMISSION_CHANGE
+}
+
+enum AuditSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+model AuditLog {
+  id         String        @id @default(uuid())
+  action     AuditAction
+  severity   AuditSeverity @default(INFO)
+  userId     String?
+  agentId    String?
+  sessionId  String?
+  ipAddress  String        @db.VarChar(45)
+  userAgent  String        @db.Text
+  metadata   Json          @default("{}")
+  timestamp  DateTime      @default(now())
+
+  // Relations
+  user    User?    @relation(fields: [userId], references: [id])
+  agent   Agent?   @relation(fields: [agentId], references: [id])
+  session Session? @relation(fields: [sessionId], references: [id])
+
+  @@index([action])
+  @@index([userId])
+  @@index([agentId])
+  @@index([sessionId])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
