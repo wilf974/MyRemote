@@ -1,0 +1,60 @@
+[package]
+name = "myremote-agent"
+version = "0.1.0"
+edition = "2021"
+authors = ["MyRemote Team"]
+description = "MyRemote Agent - Secure remote support agent"
+
+[dependencies]
+# HTTP client
+reqwest = { version = "0.11", features = ["json", "rustls-tls"], default-features = false }
+tokio = { version = "1.35", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Cryptography
+rsa = "0.9"
+rand = "0.8"
+sha2 = "0.10"
+
+# System information
+sysinfo = "0.30"
+hostname = "0.3"
+mac_address = "1.1"
+
+# Logging
+log = "0.4"
+env_logger = "0.11"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Date/time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Configuration
+config = "0.14"
+
+# Platform-specific
+[target.'cfg(windows)'.dependencies]
+windows-service = "0.6"
+winapi = { version = "0.3", features = ["winsvc"] }
+
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.27", features = ["signal"] }
+daemonize = "0.5"
+libc = "0.2"
+
+[[bin]]
+name = "myremote-agent"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true

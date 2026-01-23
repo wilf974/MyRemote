@@ -1,116 +1,70 @@
-// MyRemote Agent - Entry Point
-// Multi-OS remote support agent (Windows, macOS, Linux)
-
-use std::error::Error;
-use tokio;
-use tracing::{info, error};
-use tracing_subscriber;
-
 mod config;
+mod system;
 mod enrollment;
 mod heartbeat;
-mod inventory;
-mod session;
-mod websocket;
-mod storage;
+mod service;
 
-use config::Config;
+use anyhow::{Result, Context};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    // Initialize logging
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
-        .with_target(false)
-        .with_thread_ids(true)
+async fn main() -> Result<()> {
+    // Initialize logger
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
         .init();
 
-    info!("MyRemote Agent starting...");
+    log::info!("MyRemote Agent v{}", env!("CARGO_PKG_VERSION"));
 
-    // Load configuration
-    let config = Config::load()?;
-    info!("Configuration loaded: server={}", config.server.url);
+    // Get config path
+    let config_path = config::AgentConfig::default_path();
+    log::info!("Using config file: {:?}", config_path);
 
-    // Initialize local storage (SQLite)
-    let storage = storage::Storage::init(&config.local.database_path).await?;
-    info!("Local storage initialized");
-
-    // Check if device is enrolled
-    let device_id = storage.get_device_id().await?;
-
-    let device_id = match device_id {
-        Some(id) => {
-            info!("Device already enrolled: {}", id);
-            id
-        }
-        None => {
-            info!("Device not enrolled, starting enrollment...");
-
-            // Enrollment
-            let enrollment_token = config.enrollment.token
-                .ok_or("Enrollment token not configured")?;
-
-            let device_id = enrollment::enroll(
-                &config.server.url,
-                &enrollment_token,
-                &storage,
-            ).await?;
-
-            info!("Device enrolled successfully: {}", device_id);
-            device_id
-        }
+    // Load or create configuration
+    let mut config = if config_path.exists() {
+        log::info!("Loading configuration from file...");
+        config::AgentConfig::load(&config_path)
+            .context("Failed to load configuration")?
+    } else {
+        log::warn!("Configuration file not found, creating default...");
+        let config = config::AgentConfig::default();
+        config.save(&config_path)
+            .context("Failed to save default configuration")?;
+        config
     };
 
-    // Get device secret (JWT long-lived)
-    let device_secret = storage.get_device_secret().await?
-        .ok_or("Device secret not found in storage")?;
+    // Check if agent is enrolled
+    if !config.is_enrolled() {
+        log::info!("Agent is not enrolled. Starting enrollment...");
+        
+        if config.enrollment_token.is_none() {
+            log::error!("Enrollment token not found in configuration.");
+            log::error!("Please set enrollment_token in {:?}", config_path);
+            std::process::exit(1);
+        }
 
-    // Collect system inventory
-    let inventory = inventory::collect().await?;
-    info!("System inventory collected: CPU={}, RAM={} GB",
-          inventory.cpu.model, inventory.ram.total_gb);
+        // Enroll the agent
+        let enroller = enrollment::Enrollment::new(config.clone());
+        let agent_id = enroller.enroll().await
+            .context("Enrollment failed")?;
 
-    // Connect WebSocket
-    info!("Connecting to WebSocket...");
-    let ws_client = websocket::WsClient::connect(
-        &config.server.url,
-        &device_id,
-        &device_secret,
-    ).await?;
-    info!("WebSocket connected");
+        // Update configuration
+        config.agent_id = Some(agent_id.clone());
+        config.save(&config_path)
+            .context("Failed to save updated configuration")?;
+
+        log::info!("Enrollment completed successfully!");
+        log::info!("Agent ID: {}", agent_id);
+    }
+
+    let agent_id = config.agent_id.as_ref().unwrap().clone();
+    log::info!("Agent ID: {}", agent_id);
+    log::info!("Starting MyRemote Agent...");
+
+    // Create heartbeat service
+    let heartbeat = heartbeat::HeartbeatService::new(config.clone(), agent_id);
 
     // Start heartbeat loop
-    let heartbeat_interval = config.server.heartbeat_interval_seconds;
-    tokio::spawn(async move {
-        heartbeat::start_loop(&ws_client, heartbeat_interval).await;
-    });
+    heartbeat.start().await
+        .context("Heartbeat service stopped unexpectedly")?;
 
-    // Main event loop (handle incoming messages from server)
-    loop {
-        match ws_client.recv().await {
-            Ok(msg) => {
-                match msg {
-                    websocket::WsMessage::SessionRequest(req) => {
-                        info!("Session request received: type={}, mode={}",
-                              req.session_type, req.access_mode);
-                        session::handle_request(req).await;
-                    }
-                    websocket::WsMessage::PolicyUpdate(policy) => {
-                        info!("Policy update received");
-                        // TODO: Apply policy (auto-update, etc.)
-                    }
-                    websocket::WsMessage::Ping => {
-                        ws_client.send(websocket::WsMessage::Pong).await?;
-                    }
-                    _ => {}
-                }
-            }
-            Err(e) => {
-                error!("WebSocket error: {}", e);
-                // Reconnect logic
-                tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-                // TODO: Implement reconnection
-            }
-        }
-    }
+    Ok(())
 }
