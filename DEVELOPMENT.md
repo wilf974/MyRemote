@@ -1,5 +1,55 @@
 # MyRemote - Guide de Développement
 
+## 🎉 Sprint 2 Complété - Authentification avec Keycloak
+
+Le Sprint 2 (Authentification) a été complété avec succès ! Le système d'authentification complet est maintenant opérationnel avec Keycloak, 2FA et RBAC.
+
+### ✅ Ce qui a été implémenté (Sprint 2)
+
+#### API - Module d'Authentification
+- ✅ Stratégie JWT avec Passport
+- ✅ Guards (JwtAuthGuard, RolesGuard) enregistrés globalement
+- ✅ Decorators (@Public, @Roles, @CurrentUser)
+- ✅ Service Keycloak (login, refresh, logout, validation)
+- ✅ Service Auth complet (login, 2FA, audit logs)
+- ✅ Endpoints REST:
+  - POST /auth/login - Login avec email/password + 2FA optionnel
+  - POST /auth/refresh - Rafraîchir le token d'accès
+  - POST /auth/logout - Se déconnecter
+  - GET /auth/me - Obtenir les infos utilisateur
+  - POST /auth/2fa/generate - Générer secret 2FA
+  - POST /auth/2fa/enable - Activer 2FA avec vérification TOTP
+  - POST /auth/2fa/disable - Désactiver 2FA avec mot de passe
+
+#### Frontend - Interface d'Authentification
+- ✅ Client API Axios avec intercepteurs (auto-refresh des tokens)
+- ✅ Store Zustand pour la gestion de l'état auth
+- ✅ Page /login avec support 2FA
+- ✅ Page /dashboard protégée avec infos utilisateur
+- ✅ Page /dashboard/2fa pour gérer la 2FA
+- ✅ Persistance de session (localStorage)
+- ✅ Redirection automatique si non authentifié
+
+#### Configuration Keycloak
+- ✅ Script automatisé de configuration (setup-realm.js)
+- ✅ Création du realm 'myremote'
+- ✅ Client API (myremote-api) avec client credentials
+- ✅ Client Web (myremote-web) avec PKCE
+- ✅ Rôles: ADMIN, TECHNICIAN, VIEWER
+- ✅ Politique OTP/2FA (TOTP, 6 chiffres, 30s)
+- ✅ Documentation complète
+
+#### Sécurité
+- ✅ JWT token-based authentication
+- ✅ Rotation des refresh tokens
+- ✅ Contrôle d'accès basé sur les rôles (RBAC)
+- ✅ 2FA TOTP (codes à 6 chiffres, fenêtre 30s)
+- ✅ Audit logging pour tous les événements auth
+- ✅ Protection contre force brute (via Keycloak)
+- ✅ Expiration des tokens (1h accès, configurable)
+
+---
+
 ## 🎉 Sprint 1 Complété - Fondations du Projet
 
 Le Sprint 1 (Fondations) a été complété avec succès. L'infrastructure de base est maintenant en place.
@@ -139,45 +189,89 @@ MyRemote/
 ### Keycloak
 - **URL**: http://localhost:8080
 - **Admin**: admin / admin
-- **Realm**: myremote (à créer)
+- **Realm**: myremote
+- **Setup**: `cd scripts/keycloak && npm install && npm run setup`
 
 ---
 
-## 📋 Prochaines Étapes - Sprint 2
+## 🚀 Configuration Keycloak (Sprint 2)
 
-### Sprint 2 : Authentification (Semaines 3-4)
+### Setup automatique
 
-#### À Implémenter
+```bash
+# 1. Démarrer Keycloak
+docker compose up -d keycloak
 
-1. **Configuration Keycloak**
-   - [ ] Créer le realm "myremote"
-   - [ ] Configurer les clients (API + Web)
-   - [ ] Activer 2FA TOTP obligatoire
-   - [ ] Configurer les rôles (ADMIN, TECHNICIAN, VIEWER)
+# 2. Attendre que Keycloak soit prêt (30-60s)
+docker compose logs -f keycloak
 
-2. **API - Module Auth**
-   - [ ] Intégration Keycloak avec Passport JWT
-   - [ ] Middleware d'authentification
-   - [ ] Guards pour les rôles
-   - [ ] Endpoints de login/logout
-   - [ ] Validation 2FA
+# 3. Exécuter le script de configuration
+cd scripts/keycloak
+npm install
+npm run setup
 
-3. **Frontend - Pages Auth**
-   - [ ] Page de login
-   - [ ] Configuration 2FA
-   - [ ] Gestion de session
-   - [ ] Redirection après auth
+# 4. Copier le client secret affiché dans .env
+```
 
-4. **Tests**
-   - [ ] Tests unitaires auth service
-   - [ ] Tests E2E login flow
-   - [ ] Tests 2FA
+### Créer un utilisateur
+
+1. Accéder à http://localhost:8080/admin
+2. Login: admin / admin
+3. Sélectionner le realm `myremote`
+4. Users → Add user
+5. Remplir email, firstName, lastName
+6. Sauvegarder
+7. Credentials → Set password
+8. Role Mappings → Assigner ADMIN/TECHNICIAN/VIEWER
+
+### Tester l'authentification
+
+```bash
+# Démarrer l'API et le Web
+pnpm dev
+
+# Ouvrir le navigateur
+http://localhost:3000/login
+
+# Se connecter avec l'utilisateur créé
+```
+
+---
+
+## 📋 Prochaines Étapes - Sprint 3
 
 ### Sprint 3 : Gestion de Flotte (Semaines 5-6)
 
-- Implémentation CRUD agents
-- Liste et détails des agents
-- WebSocket pour statut en temps réel
+#### À Implémenter
+
+1. **API - Module Users**
+   - [ ] Endpoints CRUD pour users
+   - [ ] Synchronisation avec Keycloak
+   - [ ] Gestion des rôles
+   - [ ] Liste et recherche
+
+2. **API - Module Agents**
+   - [ ] Endpoints CRUD pour agents
+   - [ ] Enrollment sécurisé
+   - [ ] Heartbeat et status
+   - [ ] Tags et métadonnées
+
+3. **Frontend - Pages Users**
+   - [ ] Liste des utilisateurs
+   - [ ] Créer/éditer utilisateur
+   - [ ] Assigner rôles
+   - [ ] Désactiver/supprimer
+
+4. **Frontend - Pages Agents**
+   - [ ] Liste des agents (avec statut en temps réel)
+   - [ ] Détails d'un agent
+   - [ ] Actions (redémarrer, mettre à jour)
+   - [ ] Tags et filtres
+
+5. **WebSocket**
+   - [ ] Configuration Socket.io
+   - [ ] Events pour statut agents
+   - [ ] Updates en temps réel
 
 ### Sprint 4 : Agent Rust (Semaines 7-9)
 
@@ -215,7 +309,8 @@ sudo bash scripts/deploy-infrastructure-only.sh
 - ✅ **Documentation** : Complète (21 fichiers)
 - ✅ **Infrastructure** : Scripts de déploiement prêts
 - ✅ **Fondations code** : Sprint 1 complété
-- ⚠️ **Fonctionnalités** : À implémenter (Sprints 2-6)
+- ✅ **Authentification** : Sprint 2 complété (Keycloak, JWT, 2FA, RBAC)
+- ⚠️ **Fonctionnalités** : À implémenter (Sprints 3-6)
 
 ---
 
@@ -244,6 +339,6 @@ Voir `CONTRIBUTING.md` pour les guidelines de contribution.
 
 ---
 
-**Dernière mise à jour** : 2026-01-23  
-**Sprint actuel** : Sprint 1 (Complété) ✅  
-**Prochain sprint** : Sprint 2 (Authentification)
+**Dernière mise à jour** : 2026-01-23
+**Sprints complétés** : Sprint 1 (Fondations) ✅ | Sprint 2 (Authentification) ✅
+**Prochain sprint** : Sprint 3 (Gestion de Flotte - Users & Agents)
