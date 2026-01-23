@@ -8,6 +8,7 @@ import { AgentsModule } from './modules/agents/agents.module';
 import { SessionsModule } from './modules/sessions/sessions.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { HealthModule } from './modules/health/health.module';
+import { EventsModule } from './gateways/events.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { HealthModule } from './modules/health/health.module';
 
     // Modules
     DatabaseModule,
+    EventsModule,
     HealthModule,
     AuthModule,
     UsersModule,

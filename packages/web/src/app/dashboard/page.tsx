@@ -86,14 +86,25 @@ export default function DashboardPage() {
               <div className="border-t pt-4">
                 <h3 className="text-lg font-semibold mb-2">Quick Actions</h3>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  <button className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark">
+                  <button
+                    onClick={() => router.push('/dashboard/agents')}
+                    className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
+                  >
                     Manage Agents
                   </button>
-                  <button className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark">
-                    View Sessions
-                  </button>
-                  <button className="px-4 py-2 bg-secondary text-white rounded hover:bg-secondary-dark">
-                    Settings
+                  {(user.role === 'ADMIN' || user.role === 'TECHNICIAN') && (
+                    <button
+                      onClick={() => router.push('/dashboard/users')}
+                      className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark"
+                    >
+                      Manage Users
+                    </button>
+                  )}
+                  <button
+                    onClick={() => router.push('/dashboard/2fa')}
+                    className="px-4 py-2 bg-secondary text-white rounded hover:bg-secondary-dark"
+                  >
+                    2FA Settings
                   </button>
                 </div>
               </div>
